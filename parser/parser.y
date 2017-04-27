@@ -450,6 +450,7 @@ import (
 	identified	"IDENTIFIED"
 	isolation	"ISOLATION"
 	indexes		"INDEXES"
+    jsonType    "JSON"
 	keyBlockSize	"KEY_BLOCK_SIZE"
 	local		"LOCAL"
 	less		"LESS"
@@ -5698,6 +5699,11 @@ StringType:
 		x.Collate = $6.(string)
 		$$ = x
 	}
+|   "JSON"
+    {
+        x := types.NewFieldType(mysql.TypeJson)
+        $$ = x
+    }
 
 NationalOpt:
 	{}

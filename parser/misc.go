@@ -527,6 +527,7 @@ var tokenMap = map[string]int{
 	"LONGTEXT":                   longtextType,
 	"BOOL":                       boolType,
 	"BOOLEAN":                    booleanType,
+	"JSON":                       jsonType,
 	"SECOND_MICROSECOND":         secondMicrosecond,
 	"MINUTE_MICROSECOND":         minuteMicrosecond,
 	"MINUTE_SECOND":              minuteSecond,
