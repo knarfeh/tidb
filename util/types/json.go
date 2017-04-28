@@ -22,3 +22,7 @@ func (j *Json) JsonSerialize() []byte {
 func JsonDeserialize(data []byte) Json {
 	return Json{origin: hack.String(data[12:])}
 }
+
+func (j *Json) JsonDumpToText() string {
+	return j.origin
+}

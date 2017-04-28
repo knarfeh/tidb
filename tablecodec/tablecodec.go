@@ -200,6 +200,10 @@ func flatten(data types.Datum) (types.Datum, error) {
 	case types.KindMysqlSet:
 		data.SetUint64(data.GetMysqlSet().Value)
 		return data, nil
+	case types.KindMysqlJson:
+		j := data.GetMysqlJson()
+		data.SetBytes(j.JsonSerialize())
+		return data, nil
 	case types.KindMysqlBit:
 		data.SetUint64(data.GetMysqlBit().Value)
 		return data, nil
@@ -421,6 +425,9 @@ func Unflatten(datum types.Datum, ft *types.FieldType, inIndex bool) (types.Datu
 			return datum, errors.Trace(err)
 		}
 		datum.SetValue(set)
+		return datum, nil
+	case mysql.TypeJson:
+		datum.SetValue(types.JsonDeserialize(datum.GetBytes()))
 		return datum, nil
 	case mysql.TypeBit:
 		bit := types.Bit{Value: datum.GetUint64(), Width: ft.Flen}
