@@ -33,6 +33,7 @@ const (
 	durationFlag     byte = 7
 	varintFlag       byte = 8
 	uvarintFlag      byte = 9
+	jsonFlag         byte = 10 // tell kv it's a json so the kv can deserialize that.
 	maxFlag          byte = 250
 )
 
@@ -70,6 +71,8 @@ func encode(b []byte, vals []types.Datum, comparable bool) ([]byte, error) {
 			b = encodeUnsignedInt(b, uint64(val.GetMysqlEnum().ToNumber()), comparable)
 		case types.KindMysqlSet:
 			b = encodeUnsignedInt(b, uint64(val.GetMysqlSet().ToNumber()), comparable)
+		case types.KindMysqlJson:
+			b = encodeJson(b, val.GetMysqlJson(), comparable)
 		case types.KindNull:
 			b = append(b, NilFlag)
 		case types.KindMinNotNull:
@@ -115,6 +118,18 @@ func encodeUnsignedInt(b []byte, v uint64, comparable bool) []byte {
 		b = EncodeUvarint(b, v)
 	}
 	return b
+}
+
+func encodeJson(b []byte, j types.Json, comparable bool) []byte {
+	b = append(b, jsonFlag)
+	jsonSer := j.JsonSerialize()
+	return EncodeCompactBytes(b, jsonSer)
+}
+
+func decodeJson(b []byte) ([]byte, types.Json, error) {
+	b, jsonSer, err := DecodeCompactBytes(b)
+	json := types.JsonDeserialize(jsonSer)
+	return b, json, err
 }
 
 // EncodeKey appends the encoded values to byte slice b, returns the appended
@@ -202,6 +217,10 @@ func DecodeOne(b []byte) (remain []byte, d types.Datum, err error) {
 			v := types.Duration{Duration: time.Duration(r), Fsp: types.MaxFsp}
 			d.SetValue(v)
 		}
+	case jsonFlag:
+		var j types.Json
+		b, j, err = decodeJson(b)
+		d.SetMysqlJson(j)
 	case NilFlag:
 	default:
 		return b, d, errors.Errorf("invalid encoded key flag %v", flag)

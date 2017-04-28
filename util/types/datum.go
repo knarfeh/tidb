@@ -48,6 +48,7 @@ const (
 	KindMinNotNull    byte = 16
 	KindMaxValue      byte = 17
 	KindRaw           byte = 18
+	KindMysqlJson     byte = 19
 )
 
 // Datum is a data box holds different kind of data.
@@ -281,6 +282,17 @@ func (d *Datum) SetMysqlSet(b Set) {
 	d.b = hack.Slice(b.Name)
 }
 
+// GetMysqlJson gets Json value
+func (d *Datum) GetMysqlJson() Json {
+	return d.x.(Json)
+}
+
+// SetMysqlJson sets Json value
+func (d *Datum) SetMysqlJson(b Json) {
+	d.k = KindMysqlJson
+	d.x = b
+}
+
 // GetMysqlTime gets types.Time value
 func (d *Datum) GetMysqlTime() Time {
 	return d.x.(Time)
@@ -330,6 +342,8 @@ func (d *Datum) GetValue() interface{} {
 		return d.GetMysqlHex()
 	case KindMysqlSet:
 		return d.GetMysqlSet()
+	case KindMysqlJson:
+		return d.GetMysqlJson()
 	case KindMysqlTime:
 		return d.GetMysqlTime()
 	default:
@@ -374,6 +388,8 @@ func (d *Datum) SetValue(val interface{}) {
 		d.SetMysqlHex(x)
 	case Set:
 		d.SetMysqlSet(x)
+	case Json:
+		d.SetMysqlJson(x)
 	case Time:
 		d.SetMysqlTime(x)
 	case []Datum:
@@ -683,6 +699,8 @@ func (d *Datum) ConvertTo(sc *variable.StatementContext, target *FieldType) (Dat
 		return d.convertToMysqlEnum(sc, target)
 	case mysql.TypeSet:
 		return d.convertToMysqlSet(sc, target)
+	case mysql.TypeJson:
+		return d.convertToMysqlJson(sc, target)
 	case mysql.TypeNull:
 		return Datum{}, nil
 	default:
@@ -1124,6 +1142,21 @@ func (d *Datum) convertToMysqlSet(sc *variable.StatementContext, target *FieldTy
 	return ret, nil
 }
 
+func (d *Datum) convertToMysqlJson(sc *variable.StatementContext, target *FieldType) (Datum, error) {
+	var (
+		j   Json
+		ret Datum
+	)
+	switch d.k {
+	case KindString, KindBytes:
+		j = JsonFromString(hack.String(d.b))
+	default:
+		return invalidConv(d, target.Tp)
+	}
+	ret.SetValue(j)
+	return ret, nil
+}
+
 // ToBool converts to a bool.
 // We will use 1 for true, and 0 for false.
 func (d *Datum) ToBool(sc *variable.StatementContext) (int64, error) {
@@ -1366,6 +1399,7 @@ func (d *Datum) ToBytes() ([]byte, error) {
 }
 
 func invalidConv(d *Datum, tp byte) (Datum, error) {
+	// TODO: should format Datum better.
 	return Datum{}, errors.Errorf("cannot convert %v to type %s", d, TypeStr(tp))
 }
 
